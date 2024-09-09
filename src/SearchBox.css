@@ -1,0 +1,31 @@
+.search-box-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 300px; /* Adjust width as needed */
+}
+
+.search-box-input {
+  width: 100%;
+  padding: 8px 40px 8px 12px; /* Add padding on the right for button */
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.search-box-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px; /* Adjust icon size as needed */
+  color: #333;
+}
+
+.search-icon {
+  display: inline-block;
+  font-size: inherit;
+}

@@ -1,0 +1,19 @@
+.react-flow__edge-path {
+  transition: stroke-width 0.3s ease; /* Smooth transition for stroke-width */
+}
+
+.react-flow__edge-path.highlighted {
+  stroke:  #964B00; /* Highlight color */
+  stroke-width: 4px; /* Increased width */
+  stroke-dasharray: 5, 5; /* Create a dashed effect */
+  animation: dash-animation 5s linear infinite; /* Slow down the animation */
+}
+
+@keyframes dash-animation {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 100; /* Adjust to match the length of the dashes */
+  }
+}

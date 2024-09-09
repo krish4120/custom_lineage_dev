@@ -1,0 +1,522 @@
+//App.tsx
+import { useEffect, useCallback, useState, useRef } from 'react';
+import dagre from 'dagre';
+import { useLocation } from 'react-router-dom';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  type OnConnect,
+  type ReactFlowInstance,
+} from '@xyflow/react';
+
+import '@xyflow/react/dist/style.css';
+import { parseJsonData } from './dataTransform';
+import CustomNode from './CustomNode';
+import CustomEdge from './customeEdge';
+import SearchBox from './SearchBox'; // Import the new SearchBox component
+
+function getTextDimensions(text, font = '14px Arial') {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  context.font = font;
+  const metrics = context.measureText(text);
+  const width = metrics.width;
+  const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+  return { width, height };
+}
+
+const nodeTypes = {
+  custom: CustomNode,
+};
+const edgeTypes = {
+  custom: CustomEdge,
+};
+
+export default function App() {
+  const location = useLocation();
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [expandedNodes, setExpandedNodes] = useState(new Set());
+  const [hiddenNodes, setHiddenNodes] = useState(new Set());
+  const [hiddenEdges, setHiddenEdges] = useState(new Set());
+  const [highlightedEdges, setHighlightedEdges] = useState(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
+  const jsonData = location.state?.jsonData || [];
+
+  useEffect(() => {
+    const { nodes: parsedNodes, edges: parsedEdges } = parseJsonData(jsonData);
+  
+    const g = new dagre.graphlib.Graph();
+    g.setGraph({
+      rankdir: 'LR',
+      nodesep: 100,
+      edgesep: 50,
+      ranksep: 150,
+    });
+    g.setDefaultEdgeLabel(() => ({}));
+  
+    parsedNodes.forEach((node) => {
+      const { width, height } = getTextDimensions(node.data.label || node.id);
+      g.setNode(node.id, { width: width + 20, height: height + 20 });
+    });
+  
+    parsedEdges.forEach((edge) => {
+      g.setEdge(edge.source, edge.target);
+    });
+  
+    dagre.layout(g);
+  
+    const nodesWithDependencies = parsedNodes.map((node) => {
+      const hasDependencies = parsedEdges.some(edge => edge.source === node.id);
+      return {
+        ...node,
+        position: {
+          x: g.node(node.id).x - g.node(node.id).width / 2,
+          y: g.node(node.id).y - g.node(node.id).height / 2,
+        },
+        data: {
+          ...node.data,
+          expanded: expandedNodes.has(node.id),
+          onToggleExpand: () => handleToggleExpand(node.id),
+          onNodeClick: () => handleNodeClick(node.id),
+          hasDependencies,
+          highlighted: highlightedNodeIds.includes(node.id), // Highlight logic
+        },
+        hidden: hiddenNodes.has(node.id),
+      };
+    });
+  
+    setNodes(nodesWithDependencies);
+    setEdges(parsedEdges.map((edge) => ({
+      ...edge,
+      hidden: hiddenEdges.has(edge.id),
+      data: { highlight: highlightedEdges.has(edge.id) },
+    })));
+  }, [jsonData, expandedNodes, hiddenNodes, hiddenEdges, highlightedEdges, highlightedNodeIds]);
+
+  const handleToggleExpand = (nodeId) => {
+    setExpandedNodes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+        hideNodeAndChildren(nodeId);
+      } else {
+        newSet.add(nodeId);
+        showNodeAndChildren(nodeId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleNodeClick = useCallback((nodeId) => {
+    const highlightEdges = new Set();
+    const visitedNodes = new Set();
+    const traverse = (id) => {
+      if (visitedNodes.has(id)) return;
+      visitedNodes.add(id);
+  
+      edges.forEach((edge) => {
+        if (edge.source === id) {
+          highlightEdges.add(edge.id);
+          traverse(edge.target);
+        }
+      });
+    };
+    traverse(nodeId);
+    setHighlightedEdges(highlightEdges);
+  }, [edges]);
+
+  const hideNodeAndChildren = useCallback((parentId) => {
+    const visitedNodes = new Set();
+    setHiddenNodes((prev) => {
+      const newSet = new Set(prev);
+      const toHide = new Set();
+      const traverse = (id) => {
+        if (visitedNodes.has(id)) return;
+        visitedNodes.add(id);
+  
+        edges.forEach((edge) => {
+          if (edge.source === id) {
+            toHide.add(edge.target);
+            traverse(edge.target);
+          }
+        });
+      };
+      traverse(parentId);
+      toHide.forEach((nodeId) => newSet.add(nodeId));
+      return newSet;
+    });
+  
+    setHiddenEdges((prev) => {
+      const newSet = new Set(prev);
+      edges.forEach((edge) => {
+        if (edge.source === parentId || hiddenNodes.has(edge.source)) {
+          newSet.add(edge.id);
+        }
+      });
+      return newSet;
+    });
+  }, [edges, hiddenNodes]);
+
+  const showNodeAndChildren = (parentId) => {
+    setHiddenNodes((prev) => {
+      const newSet = new Set(prev);
+      const toShow = new Set();
+      edges.forEach((edge) => {
+        if (edge.source === parentId) {
+          toShow.add(edge.target);
+        }
+      });
+      toShow.forEach((nodeId) => newSet.delete(nodeId));
+      return newSet;
+    });
+
+    setHiddenEdges((prev) => {
+      const newSet = new Set(prev);
+      edges.forEach((edge) => {
+        if (edge.source === parentId) {
+          newSet.delete(edge.id);
+        }
+      });
+      return newSet;
+    });
+  };
+
+  const onConnect: OnConnect = useCallback(
+    (connection) => {
+      console.log('Connection attempt blocked:', connection);
+    },
+    []
+  );
+
+  const handleSearch = (searchTerm: string) => {
+    const matchingNodes = nodes.filter((n) => n.id.includes(searchTerm));
+    const matchingNodeIds = matchingNodes.map((node) => node.id);
+    setHighlightedNodeIds(matchingNodeIds);
+    setCurrentIndex(0);
+
+    if (matchingNodes.length > 0 && reactFlowInstanceRef.current) {
+      try {
+        reactFlowInstanceRef.current.fitView({ nodes: [matchingNodes[0]] });
+      } catch (error) {
+        console.error('Error fitting view:', error);
+      }
+    } else {
+      console.warn('No matching nodes found');
+    }
+  };
+
+  const handleNext = () => {
+    if (highlightedNodeIds.length === 0) return;
+
+    const nextIndex = (currentIndex + 1) % highlightedNodeIds.length;
+    const nextNodeId = highlightedNodeIds[nextIndex];
+    setCurrentIndex(nextIndex);
+
+    const node = nodes.find((n) => n.id === nextNodeId);
+    if (node && reactFlowInstanceRef.current) {
+      try {
+        reactFlowInstanceRef.current.fitView({ nodes: [node] });
+      } catch (error) {
+        console.error('Error fitting view:', error);
+      }
+    }
+  };
+
+  const onInit = (instance: ReactFlowInstance) => {
+    reactFlowInstanceRef.current = instance;
+  };
+
+  return (
+    <div style={{ height: '100vh', width: '100vw' }}>
+      <SearchBox onSearch={handleSearch} onNext={handleNext} />
+      <ReactFlow
+        nodes={nodes.filter(node => !node.hidden)}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        edges={edges.filter(edge => !edge.hidden)}
+        edgeTypes={edgeTypes}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        fitView
+        connectOnClick={false}
+        preventScrolling={false}
+        onInit={onInit}
+      >
+        <MiniMap />
+        <Controls />
+        <Background color="#aaa" gap={16} />
+      </ReactFlow>
+    </div>
+  );
+}
+
+//customEdge.css
+.react-flow__edge-path {
+  transition: stroke-width 0.3s ease; /* Smooth transition for stroke-width */
+}
+
+.react-flow__edge-path.highlighted {
+  stroke: rgb(10, 56, 238); /* Highlight color */
+  stroke-width: 4px; /* Increased width */
+  stroke-dasharray: 5, 5; /* Create a dashed effect */
+  animation: dash-animation 5s linear infinite; /* Slow down the animation */
+}
+
+@keyframes dash-animation {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 100; /* Adjust to match the length of the dashes */
+  }
+}
+
+//customEdge.tsx
+import React from 'react';
+import { EdgeProps, getBezierPath } from '@xyflow/react';
+import './customEdge.css'; // Import your CSS file
+
+const CustomEdge: React.FC<EdgeProps> = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style = {},
+  markerEnd,
+  data,
+}) => {
+  const [edgePath] = getBezierPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+  });
+
+  return (
+    <path
+      id={id}
+      className={`react-flow__edge-path ${data?.highlight ? 'highlighted' : ''}`} // Apply class based on highlight
+      style={{
+        ...style,
+        strokeWidth: data?.highlight ? 4 : 2,
+      }}
+      d={edgePath}
+      markerEnd={markerEnd}
+    />
+  );
+};
+
+export default CustomEdge;
+
+//customNode.css
+.custom-node-content {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+  
+  }
+/* customNode.css */
+.custom-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  border: 1px solid black;
+  border-radius: 5px;
+}
+
+.custom-node-content button {
+  margin-left: 10px;
+}
+
+//customNode.tsx
+import React from 'react';
+import { Handle, Position } from '@xyflow/react';
+import './customNode.css';
+
+interface CustomNodeProps {
+  data: {
+    label: string;
+    expanded: boolean;
+    onToggleExpand: () => void;
+    onNodeClick: () => void;
+    hasDependencies: boolean; // Add this prop
+  };
+}
+
+const CustomNode: React.FC<CustomNodeProps> = ({ data }) => {
+  return (
+    <div className="custom-node" onClick={data.onNodeClick}>
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+      />
+      <div className="custom-node-content">
+        <span>{data.label}</span>
+        {data.hasDependencies && ( // Conditionally render the expand button
+          <button onClick={data.onToggleExpand}>
+            {data.expanded ? '▼' : '▲'}
+          </button>
+        )}
+      </div>
+      {data.hasDependencies && ( // Conditionally render the source handle
+        <Handle 
+          type="source" 
+          position={Position.Right} 
+        />
+      )}
+    </div>
+  );
+};
+
+export default CustomNode;
+
+//dataTransform.ts
+// Define the types for nodes and edges
+import type { Node, Edge } from '@xyflow/react';
+
+// Define types for the input JSON
+interface Child {
+  isStage: number;
+  name: string;
+  type: string;
+}
+
+interface InputData {
+  child: Child[];
+  childNames: string;
+  depdOrder: number;
+  isStage: number;
+  name: string;
+  type: string;
+}
+
+// Function to parse the JSON and return nodes and edges
+export const parseJsonData = (data: InputData[]): { nodes: Node[], edges: Edge[] } => {
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+
+  data.forEach((item) => {
+    // Create the parent node
+    nodes.push({
+      id: item.name,
+      type:'custom',
+      data: { label: item.name,expanded: true },
+      // Position will be calculated later
+      position: { x: 0, y: 0 },
+      style: { backgroundColor: item.type === 'VIEW' ? '#fca474' : '#ADD8E6' }, // Set color based on type
+    });
+
+    // Create child nodes and edges
+    item.child.forEach((child) => {
+      nodes.push({
+        id: child.name,
+        type:'custom',
+        data: { label: child.name,expanded: true },
+      // Position will be calculated later
+        position: { x: 0, y: 0 },      
+        style: { backgroundColor: child.type === 'VIEW' ? '#fca474' : '#ADD8E6' }, // Set color based on type
+      });
+      edges.push({
+        id: `${item.name}->${child.name}`,
+        type:'custom',
+        source: item.name,
+        target: child.name,
+      });
+    });
+  });
+
+  return { nodes, edges };
+};
+
+//SearchBox.css
+.search-box-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 300px; /* Adjust width as needed */
+}
+
+.search-box-input {
+  width: 100%;
+  padding: 8px 40px 8px 12px; /* Add padding on the right for button */
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.search-box-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px; /* Adjust icon size as needed */
+  color: #333;
+}
+
+.search-icon {
+  display: inline-block;
+  font-size: inherit;
+}
+
+//SearchBox.tsx
+import React, { useState, useCallback, KeyboardEvent } from 'react';
+import './SearchBox.css'; // Import the CSS file for styling
+
+interface SearchBoxProps {
+  onSearch: (searchTerm: string) => void;
+  onNext: () => void;
+}
+
+const SearchBox: React.FC<SearchBoxProps> = ({ onSearch, onNext }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleSearch = useCallback(() => {
+    onSearch(searchTerm);
+    onNext();
+  }, [searchTerm, onSearch, onNext]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  return (
+    <div className="search-box-container">
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        placeholder="Search node ID"
+        className="search-box-input"
+      />
+      <button onClick={handleSearch} className="search-box-button">
+        <span className="search-icon">&#128269;</span> {/* Unicode for a magnifying glass */}
+      </button>
+    </div>
+  );
+};
+
+export default SearchBox;
