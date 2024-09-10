@@ -4,13 +4,19 @@ import Home from './Home';
 import App from './App';
 import './index.css'; // Import global styles
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const rootElement = document.getElementById('root');
 
-root.render(
-  <Router>
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/app" element={<App />} />
-    </Routes>
-  </Router>
-);
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+
+  root.render(
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/app" element={<App />} />
+      </Routes>
+    </Router>
+  );
+} else {
+  console.error("Root element not found");
+}
