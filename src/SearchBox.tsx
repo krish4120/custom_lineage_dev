@@ -19,13 +19,7 @@ const SearchBox: React.FC<SearchBoxProps> = ({ onSearch, onNext }) => {
       return;
     }
 
-    const searchResult = onSearch(searchTerm);
-
-    if (searchResult === 0) {
-      alert('No matching nodes found.');
-      return;
-    }
-
+    onSearch(searchTerm);
     onNext();
   }, [searchTerm, onSearch, onNext]);
 

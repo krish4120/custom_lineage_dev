@@ -1,16 +1,35 @@
 import type { Node, Edge } from '@xyflow/react';
 
+// Define possible node types
+type NodeType = 'TABLE' | 'VIEW' | 'POWER BI DATASET' | 'POWER BI REPORT';
+
+// Function to get the color based on node type
+const getColor = (type: NodeType): string => {
+  switch (type) {
+    case 'TABLE':
+      return '#4CAF50'; // Green for table
+    case 'VIEW':
+      return '#2196F3'; // Blue for view
+    case 'POWER BI DATASET':
+      return '#FF9800'; // Orange for Power BI dataset
+    case 'POWER BI REPORT':
+      return '#FFFFFF'; // White for Power BI report
+    default:
+      return '#000000'; // Default color (black) for unknown types
+  }
+};
+
 // Define types for nodes and edges
 interface Child {
   isStage: number;
   name: string;
-  type: string;
+  type: NodeType; // Use NodeType for type
 }
 
 interface Parent {
   isStage: number;
   name: string;
-  type: string;
+  type: NodeType; // Use NodeType for type
 }
 
 interface InputData {
@@ -21,7 +40,7 @@ interface InputData {
   name: string;
   parent?: Parent[]; // Make these optional
   parentNames?: string;
-  type: string;
+  type: NodeType; // Use NodeType for type
 }
 
 // Function to parse the JSON and return nodes and edges
@@ -38,24 +57,7 @@ export const parseJsonData = (data: InputData[]): { nodes: Node[], edges: Edge[]
     const parents = item.parent || [];
 
     // Determine the background color based on the type
-    // const backgroundColor = item.type === 'TABLE' ? '#4CAF50' : '#2196F3'; // Green for table, Blue for view
-        const getColor = (type) => {
-          switch (type) {
-              case 'TABLE':
-                  return '#4CAF50'; // Green for table
-              case 'VIEW':
-                  return '#2196F3'; // Blue for view
-              case 'POWER BI DATASET':
-                  return '#FF9800'; // Orange for Power BI dataset
-              case 'POWER BI REPORT':
-                  return '#FFFFFF'; // White for Power BI report
-              default:
-                  return '#000000'; // Default color (black) for unknown types
-          }
-        };
-      
-      const backgroundColor = getColor(item.type);
-    // const backgroundColor = item.type === 'TABLE' ? '#4CAF50' : '#2196F3'; // Green for table, Blue for view
+    const backgroundColor = getColor(item.type);
 
     // Create the parent node
     if (!nodeMap.has(item.name)) {
@@ -83,7 +85,7 @@ export const parseJsonData = (data: InputData[]): { nodes: Node[], edges: Edge[]
     // Create child nodes and edges
     children.forEach((child) => {
       if (!nodeMap.has(child.name)) {
-        const childColor = child.type === 'TABLE' ? '#4CAF50' : '#2196F3'; // Green for table, Blue for view
+        const childColor = getColor(child.type);
 
         nodes.push({
           id: child.name,
@@ -116,24 +118,7 @@ export const parseJsonData = (data: InputData[]): { nodes: Node[], edges: Edge[]
     // Create parent edges
     parents.forEach((parent) => {
       if (!nodeMap.has(parent.name)) {
-        const getColor = (type) => {
-          switch (type) {
-              case 'TABLE':
-                  return '#4CAF50'; // Green for table
-              case 'VIEW':
-                  return '#2196F3'; // Blue for view
-              case 'POWER BI DATASET':
-                  return '#FF9800'; // Orange for Power BI dataset
-              case 'POWER BI REPORT':
-                  return '#FFFFFF'; // White for Power BI report
-              default:
-                  return '#000000'; // Default color (black) for unknown types
-          }
-      };
-      
-      const parentColor = getColor(parent.type);
-      
-        // const parentColor = parent.type === 'TABLE' ? '#4CAF50' : '#2196F3'; // Green for table, Blue for view
+        const parentColor = getColor(parent.type);
 
         nodes.push({
           id: parent.name,
