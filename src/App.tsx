@@ -14,24 +14,27 @@ import {
 
 import '@xyflow/react/dist/style.css';
 import { parseJsonData } from './dataTransform';
-import CustomNode from './CustomNode';
+import CustomNode from './customNode';
 import CustomEdge from './customeEdge';
-import SearchBox from './SearchBox'; // Import the new SearchBox component
-import Navbar from './Navbar'; // Import the Navbar component
+import Navbar from './Navbar'; // Ensure this file exists and matches the casing
 
-function getTextDimensions(text, font = '14px Arial') {
+function getTextDimensions(text: string, font = '14px Arial'): { width: number; height: number } {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
-  context.font = font;
-  const metrics = context.measureText(text);
-  const width = metrics.width;
-  const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-  return { width, height };
+  if (context) {
+    context.font = font;
+    const metrics = context.measureText(text);
+    const width = metrics.width;
+    const height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+    return { width, height };
+  }
+  return { width: 0, height: 0 };
 }
 
 const nodeTypes = {
   custom: CustomNode,
 };
+
 const edgeTypes = {
   custom: CustomEdge,
 };
@@ -40,10 +43,10 @@ export default function App() {
   const location = useLocation();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [expandedNodes, setExpandedNodes] = useState(new Set());
-  const [hiddenNodes, setHiddenNodes] = useState(new Set());
-  const [hiddenEdges, setHiddenEdges] = useState(new Set());
-  const [highlightedEdges, setHighlightedEdges] = useState(new Set());
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [hiddenNodes, setHiddenNodes] = useState<Set<string>>(new Set());
+  const [hiddenEdges, setHiddenEdges] = useState<Set<string>>(new Set());
+  const [highlightedEdges, setHighlightedEdges] = useState<Set<string>>(new Set());
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
@@ -93,6 +96,7 @@ export default function App() {
   useEffect(() => {
     console.log('Current Index:', currentIndex);
   }, [currentIndex]);
+
   // Function to toggle expand/collapse of all nodes
   const handleExpandCollapseToggle = () => {
     setExpandedNodes((prevExpandedNodes) => {
@@ -110,20 +114,32 @@ export default function App() {
   };
 
   // Function to handle download of the graph
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (reactFlowInstanceRef.current) {
-      reactFlowInstanceRef.current.toObject().then((flow) => {
+      try {
+        // Assuming `toObject` returns a promise with flow data
+        const flow = await reactFlowInstanceRef.current.toObject(); 
+  
+        // Convert the flow object to a JSON string
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(flow));
+  
+        // Create a temporary anchor element for downloading the file
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", "flow.json");
+  
+        // Append the anchor to the body and trigger the download
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-      });
+  
+        // Remove the anchor from the body
+        document.body.removeChild(downloadAnchorNode);
+      } catch (error) {
+        console.error('Error generating download:', error);
+      }
     }
   };
-
+  
   useEffect(() => {
     const { nodes: parsedNodes, edges: parsedEdges } = parseJsonData(jsonData);
   
@@ -178,7 +194,7 @@ export default function App() {
     })));
   }, [jsonData, expandedNodes, hiddenNodes, hiddenEdges, highlightedEdges, highlightedNodeIds]);
 
-  const handleToggleExpand = (nodeId) => {
+  const handleToggleExpand = (nodeId: string) => {
     setExpandedNodes((prev) => {
       console.log(`Previous value of expandedNodes: ${JSON.stringify([...prev])}`);
       const newSet = new Set(prev);
@@ -194,12 +210,12 @@ export default function App() {
     });
   };
 
-  const handleNodeClick = useCallback((nodeId) => {
+  const handleNodeClick = useCallback((nodeId: string) => {
     console.log('A '+nodeId);
 
-    const highlightEdges = new Set();
-    const visitedNodes = new Set();
-    const traverse = (id) => {
+    const highlightEdges = new Set<string>();
+    const visitedNodes = new Set<string>();
+    const traverse = (id: string) => {
       if (visitedNodes.has(id)) return;
       visitedNodes.add(id);
   
@@ -215,13 +231,13 @@ export default function App() {
     setHighlightedEdges(highlightEdges);
   }, [edges]);
 
-  const hideNodeAndChildren = useCallback((parentId) => {
+  const hideNodeAndChildren = useCallback((parentId: string) => {
     console.log('B '+parentId);
-    const visitedNodes = new Set();
+    const visitedNodes = new Set<string>();
     setHiddenNodes((prev) => {
       const newSet = new Set(prev);
-      const toHide = new Set();
-      const traverse = (id) => {
+      const toHide = new Set<string>();
+      const traverse = (id: string) => {
         if (visitedNodes.has(id)) return;
         visitedNodes.add(id);
   
@@ -250,10 +266,10 @@ export default function App() {
     });
   }, [edges, hiddenNodes]);
 
-  const showNodeAndChildren = (parentId) => {
+  const showNodeAndChildren = (parentId: string) => {
     setHiddenNodes((prev) => {
       const newSet = new Set(prev);
-      const toShow = new Set();
+      const toShow = new Set<string>();
       edges.forEach((edge) => {
         if (edge.source === parentId) {
           toShow.add(edge.target);
@@ -320,18 +336,18 @@ export default function App() {
     }
   };
 
-  const onInit = (instance: ReactFlowInstance) => {
-    reactFlowInstanceRef.current = instance;
-  };
 
   return (
     <div style={{ height: '100vh', width: '100vw' }}>
       <Navbar 
         onExpandCollapseToggle={handleExpandCollapseToggle} 
         onDownload={handleDownload} 
-        onProfileClick={() => console.log('Profile clicked')}
         onSearch={handleSearch} 
         onNext={handleNext} 
+        onReset={handleNext}
+        databases={[]} 
+        schemas={[]} 
+        tables={[]}
       />
       <ReactFlow
         nodeTypes={nodeTypes}
@@ -341,12 +357,11 @@ export default function App() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onInit={onInit}
         fitView
       >
         <MiniMap />
         <Controls />
-        <Background variant="dots" gap={12} size={1} />
+        <Background gap={12} size={1} />
       </ReactFlow>
     </div>
   );
