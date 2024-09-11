@@ -153,7 +153,7 @@ export default function App() {
     g.setDefaultEdgeLabel(() => ({}));
   
     parsedNodes.forEach((node) => {
-      const { width, height } = getTextDimensions(node.data.label || node.id);
+      const { width, height } = getTextDimensions(String(node.data.label || node.id));
       g.setNode(node.id, { width: width + 20, height: height + 20 });
     });
   
