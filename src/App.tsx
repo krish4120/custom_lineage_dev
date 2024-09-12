@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, FormEvent, ChangeEvent, useRef } from 'react';
+import { useState, useEffect, useCallback, FormEvent, ChangeEvent, useRef } from 'react';
 import dagre from 'dagre';
 import { 
   ReactFlow, 
@@ -169,6 +169,26 @@ export default function AppHome() {
       return newSet;
     });
   };
+  const handleNodeClick = useCallback((nodeId: string) => {
+    console.log('A '+nodeId);
+
+    const highlightEdges = new Set<string>();
+    const visitedNodes = new Set<string>();
+    const traverse = (id: string) => {
+      if (visitedNodes.has(id)) return;
+      visitedNodes.add(id);
+  
+      edges.forEach((edge) => {
+        if (edge.source === id) {
+          highlightEdges.add(edge.id);
+          traverse(edge.target);
+        }
+      });
+    };
+    traverse(nodeId);
+    console.log('Highlighted Edges:', Array.from(highlightEdges));
+    setHighlightedEdges(highlightEdges);
+  }, [edges]);
 
   const hideNodeAndChildren = useCallback((parentId: string) => {
     const visitedNodes = new Set<string>();
@@ -234,7 +254,7 @@ export default function AppHome() {
   const handleNext = () => {
     if (highlightedNodeIds.length === 0) return;
     const nextIndex = (currentIndex + 1) % highlightedNodeIds.length;
-    const nextNodeId = highlightedNodeIds[nextIndex];
+    // const nextNodeId = highlightedNodeIds[nextIndex];
     setCurrentIndex(nextIndex);
   };
 
