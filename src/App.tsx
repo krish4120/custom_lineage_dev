@@ -1,23 +1,23 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
+import React, { useState, useEffect, useCallback, FormEvent, ChangeEvent, useRef } from 'react';
 import dagre from 'dagre';
-import { useLocation } from 'react-router-dom';
-import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
-  useNodesState,
-  useEdgesState,
-  type OnConnect,
-  type ReactFlowInstance,
+import { 
+  ReactFlow, 
+  Background, 
+  Controls, 
+  MiniMap, 
+  useNodesState, 
+  useEdgesState, 
+  type OnConnect, 
+  type ReactFlowInstance 
 } from '@xyflow/react';
-
 import '@xyflow/react/dist/style.css';
+import Navbar from './Navbar'; // Ensure this file exists and matches the casing
 import { parseJsonData } from './dataTransform';
 import CustomNode from './customNode';
 import CustomEdge from './customeEdge';
-import Navbar from './Navbar'; // Ensure this file exists and matches the casing
+import './Home.css'; // Import the CSS file for the home page
 
+// Helper function to get text dimensions
 function getTextDimensions(text: string, font = '14px Arial'): { width: number; height: number } {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
@@ -39,8 +39,12 @@ const edgeTypes = {
   custom: CustomEdge,
 };
 
-export default function App() {
-  const location = useLocation();
+export default function AppHome() {
+  const [view, setView] = useState<'home' | 'app'>('home'); // State to control the view
+  const [jsonInput, setJsonInput] = useState<string>('');   // JSON input state
+  const [jsonData, setJsonData] = useState<any[]>([]);      // Parsed JSON data state
+
+  // React Flow states
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -50,52 +54,41 @@ export default function App() {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
-  const jsonData = location.state?.jsonData || [];
 
-  // Log jsonData whenever it changes
-  useEffect(() => {
-    console.log('Location state jsonData:', jsonData);
-  }, [jsonData]);
+  // Handle form submission in Home view
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      const parsedData = JSON.parse(jsonInput);
+      setJsonData(parsedData);
+      setView('app'); // Switch to app view after valid JSON is submitted
+    } catch (error) {
+      alert('Invalid JSON data');
+    }
+  };
 
-  // Log nodes whenever they change
-  useEffect(() => {
-    console.log('Nodes:', nodes);
-  }, [nodes]);
+  // Handle change in textarea
+  const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    setJsonInput(event.target.value);
+  };
 
-  // Log edges whenever they change
-  useEffect(() => {
-    console.log('Edges:', edges);
-  }, [edges]);
-
-  // Log expanded nodes whenever they change
-  useEffect(() => {
-    console.log('Expanded Nodes:', expandedNodes);
-  }, [expandedNodes]);
-
-  // Log hidden nodes whenever they change
-  useEffect(() => {
-    console.log('Hidden Nodes:', hiddenNodes);
-  }, [hiddenNodes]);
-
-  // Log hidden edges whenever they change
-  useEffect(() => {
-    console.log('Hidden Edges:', hiddenEdges);
-  }, [hiddenEdges]);
-
-  // Log highlighted edges whenever they change
-  useEffect(() => {
-    console.log('Highlighted Edges:', highlightedEdges);
-  }, [highlightedEdges]);
-
-  // Log highlighted node IDs whenever they change
-  useEffect(() => {
-    console.log('Highlighted Node IDs:', highlightedNodeIds);
-  }, [highlightedNodeIds]);
-
-  // Log current index whenever it changes
-  useEffect(() => {
-    console.log('Current Index:', currentIndex);
-  }, [currentIndex]);
+  // Handle download of the graph (from the app view)
+  const handleDownload = async () => {
+    if (reactFlowInstanceRef.current) {
+      try {
+        const flow = await reactFlowInstanceRef.current.toObject();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(flow));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "flow.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        document.body.removeChild(downloadAnchorNode);
+      } catch (error) {
+        console.error('Error generating download:', error);
+      }
+    }
+  };
 
   // Function to toggle expand/collapse of all nodes
   const handleExpandCollapseToggle = () => {
@@ -108,41 +101,13 @@ export default function App() {
         nodes.forEach(node => showNodeAndChildren(node.id));
         nodes.forEach(node => newExpandedNodes.add(node.id));
       }
-      console.log('Expanded Nodes:', Array.from(newExpandedNodes));
       return newExpandedNodes;
     });
   };
 
-  // Function to handle download of the graph
-  const handleDownload = async () => {
-    if (reactFlowInstanceRef.current) {
-      try {
-        // Assuming `toObject` returns a promise with flow data
-        const flow = await reactFlowInstanceRef.current.toObject(); 
-  
-        // Convert the flow object to a JSON string
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(flow));
-  
-        // Create a temporary anchor element for downloading the file
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "flow.json");
-  
-        // Append the anchor to the body and trigger the download
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-  
-        // Remove the anchor from the body
-        document.body.removeChild(downloadAnchorNode);
-      } catch (error) {
-        console.error('Error generating download:', error);
-      }
-    }
-  };
-  
   useEffect(() => {
     const { nodes: parsedNodes, edges: parsedEdges } = parseJsonData(jsonData);
-  
+
     const g = new dagre.graphlib.Graph();
     g.setGraph({
       rankdir: 'LR',
@@ -151,18 +116,18 @@ export default function App() {
       ranksep: 150,
     });
     g.setDefaultEdgeLabel(() => ({}));
-  
+
     parsedNodes.forEach((node) => {
       const { width, height } = getTextDimensions(String(node.data.label || node.id));
       g.setNode(node.id, { width: width + 20, height: height + 20 });
     });
-  
+
     parsedEdges.forEach((edge) => {
       g.setEdge(edge.source, edge.target);
     });
-  
+
     dagre.layout(g);
-  
+
     const nodesWithDependencies = parsedNodes.map((node) => {
       const hasDependencies = parsedEdges.some(edge => edge.source === node.id);
       return {
@@ -177,14 +142,11 @@ export default function App() {
           onToggleExpand: () => handleToggleExpand(node.id),
           onNodeClick: () => handleNodeClick(node.id),
           hasDependencies,
-          highlighted: highlightedNodeIds.includes(node.id), // Highlight logic
+          highlighted: highlightedNodeIds.includes(node.id),
         },
         hidden: hiddenNodes.has(node.id),
       };
     });
-  
-    console.log('Parsed Nodes:', nodesWithDependencies);
-    console.log('Parsed Edges:', parsedEdges);
 
     setNodes(nodesWithDependencies);
     setEdges(parsedEdges.map((edge) => ({
@@ -196,7 +158,6 @@ export default function App() {
 
   const handleToggleExpand = (nodeId: string) => {
     setExpandedNodes((prev) => {
-      console.log(`Previous value of expandedNodes: ${JSON.stringify([...prev])}`);
       const newSet = new Set(prev);
       if (newSet.has(nodeId)) {
         newSet.delete(nodeId);
@@ -205,34 +166,11 @@ export default function App() {
         newSet.add(nodeId);
         showNodeAndChildren(nodeId);
       }
-      console.log('Expanded Nodes after toggle:', Array.from(newSet));
       return newSet;
     });
   };
 
-  const handleNodeClick = useCallback((nodeId: string) => {
-    console.log('A '+nodeId);
-
-    const highlightEdges = new Set<string>();
-    const visitedNodes = new Set<string>();
-    const traverse = (id: string) => {
-      if (visitedNodes.has(id)) return;
-      visitedNodes.add(id);
-  
-      edges.forEach((edge) => {
-        if (edge.source === id) {
-          highlightEdges.add(edge.id);
-          traverse(edge.target);
-        }
-      });
-    };
-    traverse(nodeId);
-    console.log('Highlighted Edges:', Array.from(highlightEdges));
-    setHighlightedEdges(highlightEdges);
-  }, [edges]);
-
   const hideNodeAndChildren = useCallback((parentId: string) => {
-    console.log('B '+parentId);
     const visitedNodes = new Set<string>();
     setHiddenNodes((prev) => {
       const newSet = new Set(prev);
@@ -240,7 +178,6 @@ export default function App() {
       const traverse = (id: string) => {
         if (visitedNodes.has(id)) return;
         visitedNodes.add(id);
-  
         edges.forEach((edge) => {
           if (edge.source === id) {
             toHide.add(edge.target);
@@ -250,10 +187,9 @@ export default function App() {
       };
       traverse(parentId);
       toHide.forEach((nodeId) => newSet.add(nodeId));
-      console.log('Hidden Nodes after hiding:', Array.from(newSet));
       return newSet;
     });
-  
+
     setHiddenEdges((prev) => {
       const newSet = new Set(prev);
       edges.forEach((edge) => {
@@ -261,7 +197,6 @@ export default function App() {
           newSet.add(edge.id);
         }
       });
-      console.log('Hidden Edges after hiding:', Array.from(newSet));
       return newSet;
     });
   }, [edges, hiddenNodes]);
@@ -269,14 +204,11 @@ export default function App() {
   const showNodeAndChildren = (parentId: string) => {
     setHiddenNodes((prev) => {
       const newSet = new Set(prev);
-      const toShow = new Set<string>();
       edges.forEach((edge) => {
         if (edge.source === parentId) {
-          toShow.add(edge.target);
+          newSet.delete(edge.target);
         }
       });
-      toShow.forEach((nodeId) => newSet.delete(nodeId));
-      console.log('Hidden Nodes after showing:', Array.from(newSet));
       return newSet;
     });
 
@@ -287,81 +219,63 @@ export default function App() {
           newSet.delete(edge.id);
         }
       });
-      console.log('Hidden Edges after showing:', Array.from(newSet));
       return newSet;
     });
   };
-
-  const onConnect: OnConnect = useCallback(
-    (connection) => {
-      console.log('Connection attempt blocked:', connection);
-    },
-    []
-  );
 
   const handleSearch = (searchTerm: string): number => {
     const matchingNodes = nodes.filter((n) => n.id.includes(searchTerm));
     const matchingNodeIds = matchingNodes.map((node) => node.id);
     setHighlightedNodeIds(matchingNodeIds);
     setCurrentIndex(0);
-  
-    if (matchingNodes.length > 0 && reactFlowInstanceRef.current) {
-      try {
-        reactFlowInstanceRef.current.fitView({ nodes: [matchingNodes[0]] });
-      } catch (error) {
-        console.error('Error fitting view:', error);
-      }
-    } else {
-      console.warn('No matching nodes found');
-    }
-  
-    console.log('Matching Nodes:', matchingNodes);
     return matchingNodes.length;
   };
-  
+
   const handleNext = () => {
     if (highlightedNodeIds.length === 0) return;
-
     const nextIndex = (currentIndex + 1) % highlightedNodeIds.length;
     const nextNodeId = highlightedNodeIds[nextIndex];
     setCurrentIndex(nextIndex);
-
-    const node = nodes.find((n) => n.id === nextNodeId);
-    if (node && reactFlowInstanceRef.current) {
-      try {
-        reactFlowInstanceRef.current.fitView({ nodes: [node] });
-      } catch (error) {
-        console.error('Error fitting view:', error);
-      }
-    }
   };
 
-
-  return (
+  // Conditionally render Home or App view based on state
+  return view === 'home' ? (
+    <div className="container">
+      <h1 className="header">Welcome to the Data Visualization App</h1>
+      <form className="json-form" onSubmit={handleSubmit}>
+        <textarea
+          value={jsonInput}
+          onChange={handleChange}
+          placeholder="Paste JSON here..."
+        />
+        <button type="submit">Submit</button>
+      </form>
+    </div>
+  ) : (
     <div style={{ height: '100vh', width: '100vw' }}>
-      <Navbar 
-        onExpandCollapseToggle={handleExpandCollapseToggle} 
-        onDownload={handleDownload} 
-        onSearch={handleSearch} 
-        onNext={handleNext} 
-        onReset={handleNext}
-        databases={[]} 
-        schemas={[]} 
+      <Navbar
+        onExpandCollapseToggle={handleExpandCollapseToggle}
+        onDownload={handleDownload}
+        onSearch={handleSearch}
+        onNext={handleNext}
+        onReset={() => setView('home')} // Reset to home
+        databases={[]}
+        schemas={[]}
         tables={[]}
       />
       <ReactFlow
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        fitView
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onConnect={handleExpandCollapseToggle as OnConnect}
+        onInit={(instance) => (reactFlowInstanceRef.current = instance)}
       >
-        <MiniMap />
+        <Background />
         <Controls />
-        <Background gap={12} size={1} />
+        <MiniMap />
       </ReactFlow>
     </div>
   );
