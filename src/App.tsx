@@ -40,9 +40,13 @@ const edgeTypes = {
 };
 
 export default function AppHome() {
-  const [view, setView] = useState<'home' | 'app'>('home'); // State to control the view
+  const [view, setView] = useState<'home' | 'app'>(() => localStorage.getItem('view') as 'home' | 'app' || 'home'); // Load view from localStorage
   const [jsonInput, setJsonInput] = useState<string>('');   // JSON input state
-  const [jsonData, setJsonData] = useState<any[]>([]);      // Parsed JSON data state
+  const [jsonData, setJsonData] = useState<any[]>(() => {
+    // Load JSON data from localStorage if available
+    const savedData = localStorage.getItem('jsonData');
+    return savedData ? JSON.parse(savedData) : [];
+  });      // Parsed JSON data state
 
   // React Flow states
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -54,6 +58,17 @@ export default function AppHome() {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
+
+  // Save view to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('view', view);
+  }, [view]);
+
+  useEffect(() => {
+    if (jsonData.length > 0) {
+      localStorage.setItem('jsonData', JSON.stringify(jsonData));
+    }
+  }, [jsonData]);
 
   // Handle form submission in Home view
   const handleSubmit = (event: FormEvent) => {
@@ -106,6 +121,8 @@ export default function AppHome() {
   };
 
   useEffect(() => {
+    if (jsonData.length === 0) return; // Do nothing if no jsonData
+
     const { nodes: parsedNodes, edges: parsedEdges } = parseJsonData(jsonData);
 
     const g = new dagre.graphlib.Graph();
@@ -169,9 +186,8 @@ export default function AppHome() {
       return newSet;
     });
   };
-  const handleNodeClick = useCallback((nodeId: string) => {
-    console.log('A '+nodeId);
 
+  const handleNodeClick = useCallback((nodeId: string) => {
     const highlightEdges = new Set<string>();
     const visitedNodes = new Set<string>();
     const traverse = (id: string) => {
@@ -186,7 +202,6 @@ export default function AppHome() {
       });
     };
     traverse(nodeId);
-    console.log('Highlighted Edges:', Array.from(highlightEdges));
     setHighlightedEdges(highlightEdges);
   }, [edges]);
 
@@ -221,27 +236,36 @@ export default function AppHome() {
     });
   }, [edges, hiddenNodes]);
 
-  const showNodeAndChildren = (parentId: string) => {
+  const showNodeAndChildren = useCallback((parentId: string) => {
+    const visitedNodes = new Set<string>();
     setHiddenNodes((prev) => {
       const newSet = new Set(prev);
-      edges.forEach((edge) => {
-        if (edge.source === parentId) {
-          newSet.delete(edge.target);
-        }
-      });
+      const toShow = new Set<string>();
+      const traverse = (id: string) => {
+        if (visitedNodes.has(id)) return;
+        visitedNodes.add(id);
+        edges.forEach((edge) => {
+          if (edge.source === id) {
+            toShow.add(edge.target);
+            traverse(edge.target);
+          }
+        });
+      };
+      traverse(parentId);
+      toShow.forEach((nodeId) => newSet.delete(nodeId));
       return newSet;
     });
 
     setHiddenEdges((prev) => {
       const newSet = new Set(prev);
       edges.forEach((edge) => {
-        if (edge.source === parentId) {
+        if (edge.source === parentId || !hiddenNodes.has(edge.source)) {
           newSet.delete(edge.id);
         }
       });
       return newSet;
     });
-  };
+  }, [edges, hiddenNodes]);
 
   const handleSearch = (searchTerm: string): number => {
     const matchingNodes = nodes.filter((n) => n.id.includes(searchTerm));
