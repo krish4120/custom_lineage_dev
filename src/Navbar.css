@@ -1,48 +1,58 @@
+/* General Navbar Styles */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 10px;
-  background-color: #009ada;
+  padding: 10px 20px;
+  background-color: #7a96ef;
   color: #fff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-bottom: 2px solid #008891;
 }
 
 .navbar-logo img {
   height: 40px;
 }
 
+.navbar-search {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center; /* Center the search box */
+}
+
 .navbar-dropdowns {
   display: flex;
+  align-items: center;
   gap: 10px;
 }
 
 .navbar-icons {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 20px;
 }
 
-.navbar-search {
-  margin-right: 10px; /* Add some margin to separate it from the toggle switch */
-}
-
-.navbar-icons button {
+.navbar-button {
   background: none;
   border: none;
   color: #fff;
   cursor: pointer;
   font-size: 16px;
-  margin: 0 10px;
-  padding: 10px;
+  padding: 8px 16px;
+  border-radius: 5px;
+  transition: background-color 0.3s, color 0.3s;
 }
 
-.navbar-icons button:hover {
-  color: #ccc;
+.navbar-button:hover {
+  background-color: #008891;
+  color: #f0f0f0;
 }
 
+/* Profile Image Styles */
 .navbar-profile img {
   height: 40px;
   border-radius: 50%;
+  border: 2px solid #fff;
 }
 
 /* Toggle Switch Styles */
@@ -84,7 +94,7 @@
 }
 
 input:checked + .slider {
-  background-color: #73dd64;
+  background-color: #4caf50;
 }
 
 input:checked + .slider:before {

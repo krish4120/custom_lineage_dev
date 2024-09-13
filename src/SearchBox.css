@@ -2,7 +2,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  width: 300px; /* Adjust width as needed */
+  width: 500px; /* Adjust width as needed */
 }
 
 .search-box-input {
@@ -10,7 +10,7 @@
   padding: 8px 40px 8px 12px; /* Add padding on the right for button */
   font-size: 14px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 100px;
 }
 
 .search-box-button {
@@ -22,7 +22,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 16px; /* Adjust icon size as needed */
-  color: #333;
+  color: #ccc;
 }
 
 .search-icon {
