@@ -10,11 +10,11 @@ if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
 
   root.render(
-    <Router basename="/custom_lineage_dev">  {/* Use your repository name here */}
+    <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/app" element={<App />} />
+        <Route path="/custom_lineage_dev/" element={<App />} />
+        <Route path="/custom_lineage_dev/home" element={<Home />} />
+        <Route path="/custom_lineage_dev/app" element={<App />} />
       </Routes>
     </Router>
   );
