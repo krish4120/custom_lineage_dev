@@ -272,16 +272,40 @@ export default function AppHome() {
     const matchingNodeIds = matchingNodes.map((node) => node.id);
     setHighlightedNodeIds(matchingNodeIds);
     setCurrentIndex(0);
+  
+    if (matchingNodeIds.length > 0 && reactFlowInstanceRef.current) {
+      const nodeToView = nodes.find(n => n.id === matchingNodeIds[0]);
+      if (nodeToView) {
+        reactFlowInstanceRef.current.fitView({
+          nodes: [nodeToView], // Focus on the first matched node
+          duration: 500, // Optional: set a smooth transition duration
+          padding: 0.2 // Optional: set padding to the zoom
+        });
+      }
+    }
+  
     return matchingNodes.length;
   };
-
+  
   const handleNext = () => {
     if (highlightedNodeIds.length === 0) return;
+  
     const nextIndex = (currentIndex + 1) % highlightedNodeIds.length;
-    // const nextNodeId = highlightedNodeIds[nextIndex];
+    const nextNodeId = highlightedNodeIds[nextIndex];
+  
+    const nextNode = nodes.find((node) => node.id === nextNodeId);
+  
+    if (nextNode && reactFlowInstanceRef.current) {
+      reactFlowInstanceRef.current.fitView({
+        nodes: [nextNode], // Focus on the next matched node
+        duration: 500, // Optional: set a smooth transition duration
+        padding: 0.2 // Optional: set padding to the zoom
+      });
+    }
+  
     setCurrentIndex(nextIndex);
   };
-
+  
   // Conditionally render Home or App view based on state
   return view === 'home' ? (
     <div className="container">
