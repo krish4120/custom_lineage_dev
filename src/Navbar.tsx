@@ -27,7 +27,7 @@ const Navbar: React.FC<NavbarProps> = ({
   return (
     <nav className="navbar">
       <div className="navbar-logo">
-        <img src="../Bi3-Logo.svg" alt="Logo" />
+        <img src="../custom_lineage_dev/Bi3-Logo.svg" alt="Logo" />
       </div>
       <div className="navbar-dropdowns">
         <select>
@@ -65,7 +65,7 @@ const Navbar: React.FC<NavbarProps> = ({
         </label>
         <button onClick={onDownload}>Download</button>
         <div className="navbar-profile">
-          <img src="../user.png" alt="Profile" />
+          <img src="../custom_lineage_dev/user.png" alt="Profile" />
         </div>
       </div>
     </nav>

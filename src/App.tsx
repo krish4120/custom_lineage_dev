@@ -264,11 +264,15 @@ export default function AppHome() {
       <h1 className="header">Welcome to the Data Visualization App</h1>
       <form className="json-form" onSubmit={handleSubmit}>
         <textarea
+          className="textarea"
+          rows={10}
+          cols={50}        
           value={jsonInput}
           onChange={handleChange}
-          placeholder="Paste JSON here..."
+          placeholder="Paste your JSON data here..."
         />
-        <button type="submit">Submit</button>
+        <br />
+        <button className="button" type="submit">Submit</button>
       </form>
     </div>
   ) : (

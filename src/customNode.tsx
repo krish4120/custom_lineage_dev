@@ -45,27 +45,27 @@ const CustomNode: React.FC<CustomNodeProps> = ({ data }) => {
     switch (type) {
       case 'TABLE':
         return {
-          src: '../table.png',
+          src: '../custom_lineage_dev/table.png',
           alt: 'Table'
         };
       case 'VIEW':
         return {
-          src: '../database_view.png',
+          src: '../custom_lineage_dev/database_view.png',
           alt: 'View'
         };
       case 'POWER BI DATASET':
         return {
-          src: '../powerbi_dataset.png',
+          src: '../custom_lineage_dev/powerbi_dataset.png',
           alt: 'Power BI Dataset'
         };
       case 'POWER BI REPORT':
         return {
-          src: '../powerbi_report.png',
+          src: '../custom_lineage_dev/powerbi_report.png',
           alt: 'Power BI Report'
         };
       default:
         return {
-          src: '../default.png',
+          src: '../custom_lineage_dev/default.png',
           alt: 'Default'
         };
     }
