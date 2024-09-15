@@ -178,15 +178,15 @@ export default function AppHome() {
       const newSet = new Set(prev);
       if (newSet.has(nodeId)) {
         newSet.delete(nodeId);
-        hideNodeAndChildren(nodeId);
+        hideNodeAndChildren(nodeId); // Hide children only
       } else {
         newSet.add(nodeId);
-        showNodeAndChildren(nodeId);
+        showNodeAndChildren(nodeId); // Show children
       }
       return newSet;
     });
   };
-
+  
   const handleNodeClick = useCallback((nodeId: string) => {
     const highlightEdges = new Set<string>();
     const visitedNodes = new Set<string>();
@@ -207,35 +207,48 @@ export default function AppHome() {
 
   const hideNodeAndChildren = useCallback((parentId: string) => {
     const visitedNodes = new Set<string>();
+    
+    // The parent node should not be hidden
     setHiddenNodes((prev) => {
       const newSet = new Set(prev);
       const toHide = new Set<string>();
+  
       const traverse = (id: string) => {
+        // If the node is already visited, return to avoid cyclic issues
         if (visitedNodes.has(id)) return;
         visitedNodes.add(id);
+        
         edges.forEach((edge) => {
-          if (edge.source === id) {
+          if (edge.source === id && edge.target !== parentId) {
+            // Add the target to the nodes to hide and traverse further
             toHide.add(edge.target);
             traverse(edge.target);
           }
         });
       };
+  
+      // Traverse children of the parent node but exclude the parent node itself
       traverse(parentId);
+      
+      // Add all the nodes to hide except the parent node
       toHide.forEach((nodeId) => newSet.add(nodeId));
       return newSet;
     });
-
+  
+    // Similarly, hide edges connected to the hidden nodes
     setHiddenEdges((prev) => {
       const newSet = new Set(prev);
+  
       edges.forEach((edge) => {
-        if (edge.source === parentId || hiddenNodes.has(edge.source)) {
+        if ((hiddenNodes.has(edge.source) || hiddenNodes.has(edge.target)) && edge.source !== parentId) {
           newSet.add(edge.id);
         }
       });
+  
       return newSet;
     });
   }, [edges, hiddenNodes]);
-
+  
   const showNodeAndChildren = useCallback((parentId: string) => {
     const visitedNodes = new Set<string>();
     setHiddenNodes((prev) => {
