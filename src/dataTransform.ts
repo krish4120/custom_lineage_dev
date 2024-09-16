@@ -5,7 +5,7 @@ type NodeType = 'TABLE' | 'VIEW' | 'POWER BI DATASET' | 'POWER BI REPORT';
 
 // Function to get the color based on node type
 const getColor = (type: NodeType): string => {
-  switch (type) {
+  switch (type.toUpperCase()) {
     case 'TABLE':
       return '#4CAF50'; // Green for table
     case 'VIEW':

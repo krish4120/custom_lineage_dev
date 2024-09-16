@@ -337,9 +337,6 @@ export default function AppHome() {
         onSearch={handleSearch}
         onNext={handleNext}
         onReset={() => setView('home')} // Reset to home
-        databases={[]}
-        schemas={[]}
-        tables={[]}
       />
       <ReactFlow
         nodes={nodes}

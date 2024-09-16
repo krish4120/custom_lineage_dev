@@ -42,7 +42,7 @@ const CustomNode: React.FC<CustomNodeProps> = ({ data }) => {
   }, [data.label, data.hasDependencies]);
 
   const getImageDetails = (type: string) => {
-    switch (type) {
+    switch (type.toUpperCase()) {
       case 'TABLE':
         return {
           src: '../custom_lineage_dev/table.png',
