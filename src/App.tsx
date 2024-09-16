@@ -274,7 +274,7 @@ export default function AppHome() {
   };
 
   const handleSearch = (searchTerm: string): number => {
-    const matchingNodes = nodes.filter((n) => n.id.includes(searchTerm));
+    const matchingNodes = nodes.filter((n) => n.id.includes(searchTerm.toUpperCase()));
     const matchingNodeIds = matchingNodes.map((node) => node.id);
     setHighlightedNodeIds(matchingNodeIds);
     setCurrentIndex(0);
@@ -288,6 +288,10 @@ export default function AppHome() {
           padding: 0.2 // Optional: set padding to the zoom
         });
       }
+    }
+    else
+    {
+      alert('Not Available');
     }
   
     return matchingNodes.length;
