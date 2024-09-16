@@ -258,7 +258,7 @@ export default function AppHome() {
           toShow.add(edge.target);
         }
       });
-      toShow.forEach((nodeId) => newSet.delete(nodeId));
+      toShow.forEach((nodeId) => newSet.delete(String(nodeId)));
       return newSet;
     });
 
