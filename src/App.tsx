@@ -249,22 +249,15 @@ export default function AppHome() {
     });
   }, [edges, hiddenNodes]);
   
-  const showNodeAndChildren = useCallback((parentId: string) => {
-    const visitedNodes = new Set<string>();
+  const showNodeAndChildren = (parentId) => {
     setHiddenNodes((prev) => {
       const newSet = new Set(prev);
-      const toShow = new Set<string>();
-      const traverse = (id: string) => {
-        if (visitedNodes.has(id)) return;
-        visitedNodes.add(id);
-        edges.forEach((edge) => {
-          if (edge.source === id) {
-            toShow.add(edge.target);
-            traverse(edge.target);
-          }
-        });
-      };
-      traverse(parentId);
+      const toShow = new Set();
+      edges.forEach((edge) => {
+        if (edge.source === parentId) {
+          toShow.add(edge.target);
+        }
+      });
       toShow.forEach((nodeId) => newSet.delete(nodeId));
       return newSet;
     });
@@ -272,13 +265,13 @@ export default function AppHome() {
     setHiddenEdges((prev) => {
       const newSet = new Set(prev);
       edges.forEach((edge) => {
-        if (edge.source === parentId || !hiddenNodes.has(edge.source)) {
+        if (edge.source === parentId) {
           newSet.delete(edge.id);
         }
       });
       return newSet;
     });
-  }, [edges, hiddenNodes]);
+  };
 
   const handleSearch = (searchTerm: string): number => {
     const matchingNodes = nodes.filter((n) => n.id.includes(searchTerm));

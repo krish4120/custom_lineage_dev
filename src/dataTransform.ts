@@ -13,7 +13,7 @@ const getColor = (type: NodeType): string => {
     case 'POWER BI DATASET':
       return '#FF9800'; // Orange for Power BI dataset
     case 'POWER BI REPORT':
-      return '#FFFFFF'; // White for Power BI report
+      return '#D5B4B4'; // White for Power BI report
     default:
       return '#000000'; // Default color (black) for unknown types
   }

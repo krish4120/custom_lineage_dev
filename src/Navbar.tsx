@@ -9,9 +9,6 @@ interface NavbarProps {
   onSearch: (searchTerm: string) => void;
   onNext: () => void;
   onReset: () => void;
-  databases: string[];
-  schemas: string[];
-  tables: string[];
 }
 
 const Navbar: React.FC<NavbarProps> = ({
